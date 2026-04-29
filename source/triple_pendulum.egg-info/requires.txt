@@ -1,0 +1,7 @@
+skrl[torch]>=2.0.0
+tensorboard
+matplotlib
+seaborn
+imageio[ffmpeg]
+numpy
+scipy

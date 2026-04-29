@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<!--
+Triple Inverted Pendulum on a Cart
+===================================
+Cart slides along the X axis (prismatic joint).
+Three pendulum links are stacked vertically; each rotates about the Y axis.
+Upright equilibrium: all joint angles = 0, poles pointing in +Z direction.
+
+Physical parameters (tuneable in env cfg):
+  Cart : mass = 1.0 kg,  size = 0.30 x 0.20 x 0.10 m
+  Links: mass = 0.1 kg,  length = 0.30 m,  radius = 0.01 m
+
+Inertia for each link (thin rod, COM at half-length):
+  Ixx = Iyy = m*L²/12  = 0.1 * 0.09 / 12 ≈ 7.5e-4  kg·m²
+  Izz        ≈ 0.5 * m * r²  ≈ 5e-6  kg·m²  (negligible)
+
+Joint DOF order (used in env for indexing):
+  0: slider_to_cart   (prismatic, actuated)
+  1: cart_to_pole1    (revolute,  passive + damping)
+  2: pole1_to_pole2   (revolute,  passive + damping)
+  3: pole2_to_pole3   (revolute,  passive + damping)
+-->
+<robot name="triple_pendulum_cart">
+
+  <!-- ============================================================ -->
+  <!--  Fixed World Base                                            -->
+  <!-- ============================================================ -->
+  <link name="world"/>
+
+  <!-- ============================================================ -->
+  <!--  Cart                                                        -->
+  <!-- ============================================================ -->
+  <joint name="slider_to_cart" type="prismatic">
+    <parent link="world"/>
+    <child  link="cart"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-2.5" upper="2.5" effort="30.0" velocity="10.0"/>
+    <dynamics damping="0.0" friction="0.0"/>
+  </joint>
+
+  <link name="cart">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="5.833e-3" ixy="0" ixz="0"
+                               iyy="1.083e-2" iyz="0"
+                                               izz="1.333e-2"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.30 0.20 0.10"/>
+      </geometry>
+      <material name="cart_blue">
+        <color rgba="0.2 0.4 0.8 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.30 0.20 0.10"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ============================================================ -->
+  <!--  Pole 1                                                      -->
+  <!-- ============================================================ -->
+  <joint name="cart_to_pole1" type="revolute">
+    <parent link="cart"/>
+    <child  link="pole_1"/>
+    <!-- Joint at top face of cart (z = +0.05 m from cart COM) -->
+    <origin xyz="0 0 0.05" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="0.0" velocity="100.0"/>
+    <dynamics damping="0.005" friction="0.0"/>
+  </joint>
+
+  <link name="pole_1">
+    <inertial>
+      <!-- COM at half-length along the link -->
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <mass value="0.1"/>
+      <inertia ixx="7.5e-4" ixy="0" ixz="0"
+                             iyy="7.5e-4" iyz="0"
+                                           izz="5.0e-6"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.012" length="0.30"/>
+      </geometry>
+      <material name="pole1_red">
+        <color rgba="0.85 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.012" length="0.30"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ============================================================ -->
+  <!--  Pole 2                                                      -->
+  <!-- ============================================================ -->
+  <joint name="pole1_to_pole2" type="revolute">
+    <parent link="pole_1"/>
+    <child  link="pole_2"/>
+    <!-- Joint at tip of pole_1 (z = +0.30 m from cart_to_pole1 origin) -->
+    <origin xyz="0 0 0.30" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="0.0" velocity="100.0"/>
+    <dynamics damping="0.005" friction="0.0"/>
+  </joint>
+
+  <link name="pole_2">
+    <inertial>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <mass value="0.1"/>
+      <inertia ixx="7.5e-4" ixy="0" ixz="0"
+                             iyy="7.5e-4" iyz="0"
+                                           izz="5.0e-6"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.012" length="0.30"/>
+      </geometry>
+      <material name="pole2_green">
+        <color rgba="0.2 0.75 0.3 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.012" length="0.30"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ============================================================ -->
+  <!--  Pole 3                                                      -->
+  <!-- ============================================================ -->
+  <joint name="pole2_to_pole3" type="revolute">
+    <parent link="pole_2"/>
+    <child  link="pole_3"/>
+    <!-- Joint at tip of pole_2 -->
+    <origin xyz="0 0 0.30" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="0.0" velocity="100.0"/>
+    <dynamics damping="0.005" friction="0.0"/>
+  </joint>
+
+  <link name="pole_3">
+    <inertial>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <mass value="0.1"/>
+      <inertia ixx="7.5e-4" ixy="0" ixz="0"
+                             iyy="7.5e-4" iyz="0"
+                                           izz="5.0e-6"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.012" length="0.30"/>
+      </geometry>
+      <material name="pole3_yellow">
+        <color rgba="0.95 0.85 0.1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.012" length="0.30"/>
+      </geometry>
+    </collision>
+  </link>
+
+</robot>

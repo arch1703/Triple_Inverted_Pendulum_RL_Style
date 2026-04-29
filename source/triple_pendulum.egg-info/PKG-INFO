@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: triple-pendulum
+Version: 1.0.0
+Summary: Triple inverted pendulum RL environment for Isaac Lab
+Requires-Python: >=3.10
+Requires-Dist: skrl[torch]>=2.0.0
+Requires-Dist: tensorboard
+Requires-Dist: matplotlib
+Requires-Dist: seaborn
+Requires-Dist: imageio[ffmpeg]
+Requires-Dist: numpy
+Requires-Dist: scipy
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
