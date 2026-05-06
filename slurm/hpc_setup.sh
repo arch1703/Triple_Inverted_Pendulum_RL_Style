@@ -203,7 +203,13 @@ echo "=== Step 6f: Install Isaac Sim 4.5.0.0 ==="
 # Installing with --no-build-isolation uses our pinned setuptools==69.5.1
 # which still ships pkg_resources.
 $PIP install "flatdict==4.0.1" --no-build-isolation
-$PIP install isaacsim==4.5.0.0 \
+$PIP install \
+    isaacsim==4.5.0.0 \
+    isaacsim-rl==4.5.0.0 \
+    isaacsim-replicator==4.5.0.0 \
+    isaacsim-extscache-physics==4.5.0.0 \
+    isaacsim-extscache-kit==4.5.0.0 \
+    isaacsim-extscache-kit-sdk==4.5.0.0 \
     --extra-index-url https://pypi.nvidia.com \
     --no-build-isolation
 
