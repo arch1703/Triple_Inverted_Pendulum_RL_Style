@@ -141,7 +141,7 @@ def main():
         sys.exit(1)
 
     print(f"[play_local] Loading: {args.checkpoint}")
-    model = PPO.load(args.checkpoint)
+    model = PPO.load(args.checkpoint, device="cpu")
 
     if args.record:
         print(f"[play_local] Recording {args.episodes} episode(s) → {args.out}")

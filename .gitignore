@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Checkpoints (large .zip files — keep figures and videos)
+local/checkpoints/
+local/eval_logs/
+
+# TensorBoard event files (large, regeneratable)
+local/runs/**/events.out.tfevents.*
+local/runs/**/*.monitor.csv
+# Keep the run directory structure but not the data
+!local/runs/.gitkeep
+
+# Isaac Lab / Isaac Sim generated files
+logs/
+*.usd
+*.ursdz
+
+# Conda / virtualenv
+*.conda
+.env
+
+# OS
+.DS_Store
+Thumbs.db

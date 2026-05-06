@@ -25,7 +25,7 @@ import mujoco.viewer
 _XML_PATH   = os.path.join(os.path.dirname(__file__), "..", "models", "triple_pendulum.xml")
 ACTION_SCALE = 20.0          # N  (action_scale in cfg)
 MAX_CART     = 2.0           # m  (max_cart_pos)
-MAX_ANGLE    = np.pi / 6     # rad  (max_pole_angle ≈ 0.5236 rad, 30°)
+MAX_ANGLE    = np.pi / 12    # rad  (max_pole_angle ≈ 0.2618 rad, 15°)
 MAX_STEPS    = 500           # episode_length_s=10s @ 50Hz policy
 _SUBSTEPS    = 2             # decimation (100 Hz physics / 50 Hz policy)
 
@@ -35,6 +35,7 @@ _W_ANG_VEL   = 0.01          # |rew_ang_vel_scale|
 _W_CART_POS  = 0.01          # |rew_cart_pos_scale|
 _W_CART_VEL  = 0.001         # |rew_cart_vel_scale|
 _W_SURVIVE   = 0.5           # rew_survive_scale
+_W_ANGLE     = 0.1           # linear angle penalty weight (reduces high-variance drifting)
 
 
 class TriplePendulumMuJoCoEnv(gym.Env):
@@ -78,6 +79,7 @@ class TriplePendulumMuJoCoEnv(gym.Env):
         self._renderer:  mujoco.Renderer      | None = None
 
         self._step_count = 0
+        self._reset_range = 0.017   # ≈1° initial curriculum range (widened by CurriculumCallback)
 
     # ------------------------------------------------------------------
     # Gymnasium API
@@ -88,10 +90,10 @@ class TriplePendulumMuJoCoEnv(gym.Env):
         mujoco.mj_resetData(self.model, self.data)
 
         rng = self.np_random
-        # Small random angles near upright (±5°) – matches Isaac Lab reset
-        self.data.qpos[1] = rng.uniform(-0.087, 0.087)
-        self.data.qpos[2] = rng.uniform(-0.087, 0.087)
-        self.data.qpos[3] = rng.uniform(-0.087, 0.087)
+        # Random angles near upright – range widened by CurriculumCallback
+        self.data.qpos[1] = rng.uniform(-self._reset_range, self._reset_range)
+        self.data.qpos[2] = rng.uniform(-self._reset_range, self._reset_range)
+        self.data.qpos[3] = rng.uniform(-self._reset_range, self._reset_range)
         # Small random angular velocities
         self.data.qvel[1] = rng.uniform(-0.05, 0.05)
         self.data.qvel[2] = rng.uniform(-0.05, 0.05)
@@ -117,11 +119,12 @@ class TriplePendulumMuJoCoEnv(gym.Env):
         x,  t1, t2, t3  = self.data.qpos
         xd, t1d, t2d, t3d = self.data.qvel
 
-        # ---- Reward (identical to Isaac Lab) ----
+        # ---- Reward ----
         reward = float(
             np.exp(-_K_UPRIGHT * t1**2)
             + np.exp(-_K_UPRIGHT * t2**2)
             + np.exp(-_K_UPRIGHT * t3**2)
+            - _W_ANGLE    * (abs(t1) + abs(t2) + abs(t3))
             - _W_ANG_VEL  * (t1d**2 + t2d**2 + t3d**2)
             - _W_CART_POS * x**2
             - _W_CART_VEL * xd**2
@@ -152,6 +155,10 @@ class TriplePendulumMuJoCoEnv(gym.Env):
         if self._renderer is not None:
             self._renderer.close()
             self._renderer = None
+
+    def set_reset_range(self, range_rad: float):
+        """Called by CurriculumCallback to widen the reset distribution."""
+        self._reset_range = range_rad
 
     # ------------------------------------------------------------------
     # Private helpers
