@@ -24,6 +24,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
+#SBATCH --gres=gpu:1
 #SBATCH --time=12:00:00
 #SBATCH --output=logs/train_%j_%a.log
 #SBATCH --error=logs/train_%j_%a.err
