@@ -18,7 +18,12 @@ fi
 
 echo "Installing triple_pendulum project package into overlay..."
 
-singularity exec --fakeroot \
+# Singularity needs a writable tmp dir; the default /tmp path may not exist
+export SINGULARITY_TMPDIR=/scratch/${USER}/tmp
+export SINGULARITY_CACHEDIR=/scratch/${USER}/singularity_cache
+mkdir -p "${SINGULARITY_TMPDIR}" "${SINGULARITY_CACHEDIR}"
+
+singularity exec \
     --overlay "${OVERLAY}:rw" \
     --bind "${PROJECT_DIR}:${PROJECT_DIR}" \
     "${SIF}" \
