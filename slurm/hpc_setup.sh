@@ -185,6 +185,10 @@ PIP=/ext3/miniforge3/bin/pip
 $PY --version
 $PIP --version
 
+echo "=== Step 6d.1: Bootstrap pip + setuptools ==="
+# pkg_resources (part of setuptools) must exist before any build-system deps
+$PIP install --upgrade pip setuptools wheel
+
 echo "=== Step 6e: Install PyTorch (CUDA 12.1 compatible) ==="
 # Use explicit pip path to guarantee we install into the conda env, not --user
 $PIP install torch==2.3.0+cu121 torchvision==0.18.0+cu121 \
