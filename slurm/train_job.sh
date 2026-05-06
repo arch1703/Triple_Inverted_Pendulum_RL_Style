@@ -30,7 +30,7 @@
 #SBATCH --error=logs/train_%j_%a.err
 #SBATCH --requeue
 #SBATCH --mail-type=BEGIN,END,FAIL,REQUEUE
-# #SBATCH --mail-user=NETID@nyu.edu   # uncomment and fill in
+#SBATCH --mail-user=ac9374@nyu.edu
 
 # ---------------------------------------------------------------------------
 # 0.  Paths  (edit NETID once; everything else is relative)
