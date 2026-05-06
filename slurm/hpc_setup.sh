@@ -197,20 +197,24 @@ $PIP install torch==2.3.0+cu121 torchvision==0.18.0+cu121 \
     --index-url https://download.pytorch.org/whl/cu121
 
 echo "=== Step 6f: Install Isaac Sim 4.5.0.0 ==="
-# flatdict uses setup.py and breaks inside pip's isolated build venv.
-# Pre-install it with no isolation so it uses our pinned setuptools.
-# Then set PIP_NO_BUILD_ISOLATION globally so all transitive deps follow suit.
-$PIP install flatdict --no-build-isolation
-export PIP_NO_BUILD_ISOLATION=1
+# Pre-install the exact flatdict versions both isaacsim and isaaclab need.
+# flatdict uses a legacy setup.py that breaks in pip's isolated build venv
+# (ModuleNotFoundError: No module named 'pkg_resources').
+# Installing with --no-build-isolation uses our pinned setuptools==69.5.1
+# which still ships pkg_resources.
+$PIP install "flatdict==4.0.1" --no-build-isolation
 $PIP install isaacsim==4.5.0.0 \
-    --extra-index-url https://pypi.nvidia.com
+    --extra-index-url https://pypi.nvidia.com \
+    --no-build-isolation
 
 echo "=== Step 6g: Install Isaac Lab source packages ==="
 ISAAC_LAB_DIR="/scratch/${USER}/IsaacLab"
-$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab"
-$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_assets"
-$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_tasks"
-$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_mirage"
+# --no-build-isolation on every install so pip never creates an isolated build
+# venv that lacks pkg_resources (transitive deps like flatdict need it).
+$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab" --no-build-isolation
+$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_assets" --no-build-isolation
+$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_tasks" --no-build-isolation
+$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_mirage" --no-build-isolation
 
 echo "=== Step 6h: Install project dependencies ==="
 $PIP install skrl==2.0.0 seaborn wandb imageio tensorboard
