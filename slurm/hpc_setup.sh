@@ -239,7 +239,7 @@ $PIP install torch==2.3.0+cu121 torchvision==0.18.0+cu121 \
     --index-url https://download.pytorch.org/whl/cu121
 
 echo "=== Step 6h: Install project dependencies ==="
-$PIP install skrl==2.0.0 seaborn wandb imageio tensorboard
+$PIP install h5py skrl==2.0.0 seaborn wandb imageio tensorboard
 
 echo "=== Step 6i: Verify installation ==="
 $PY -c "import torch; print('torch:', torch.__version__, '| CUDA:', torch.cuda.is_available())"
