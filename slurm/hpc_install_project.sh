@@ -33,7 +33,9 @@ singularity exec \
         cd ${PROJECT_DIR}
         pip install -e . --quiet
         echo 'Project package installed.'
-        python -c 'import triple_pendulum; print(\"triple_pendulum package OK\")'
+        # Full import requires Isaac Sim runtime (pxr/OpenUSD) — verify via
+        # package metadata instead, which doesn't trigger the import chain.
+        python -c "import importlib.metadata; v=importlib.metadata.version('triple_pendulum'); print('triple_pendulum package OK, version:', v)"
     "
 
 echo ""
