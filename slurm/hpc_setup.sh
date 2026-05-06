@@ -137,7 +137,7 @@ echo ""
 echo "Starting Singularity container to install packages..."
 echo "(This will take 30-60 minutes for Isaac Sim)"
 
-singularity exec --fakeroot \
+singularity exec \
     --overlay "${OVERLAY}:rw" \
     "${SIF}" \
     /bin/bash -s << 'SINGULARITY_EOF'
@@ -163,7 +163,7 @@ cat > /ext3/env.sh << 'EOF'
 #!/bin/bash
 unset -f which
 source /ext3/miniforge3/etc/profile.d/conda.sh
-export PATH=/ext3/miniforge3/bin:$PATH
+export PATH=/ext3/miniforge3/bin:/home/${USER}/.local/bin:$PATH
 export PYTHONPATH=/ext3/miniforge3/bin:$PATH
 EOF
 chmod +x /ext3/env.sh
@@ -176,31 +176,37 @@ conda clean --all --yes --quiet
 
 echo "=== Step 6d: Install Python 3.10 ==="
 conda install -n base python=3.10 pip -y --quiet
+# Re-source so PATH picks up the newly installed pip/python binaries
+source /ext3/env.sh
+hash -r
+# Sanity-check: must be 3.10
+PY=/ext3/miniforge3/bin/python
+PIP=/ext3/miniforge3/bin/pip
+$PY --version
+$PIP --version
 
 echo "=== Step 6e: Install PyTorch (CUDA 12.1 compatible) ==="
-# Use cu121 on HPC since the SIF image has CUDA 12.1
-pip install torch==2.3.0+cu121 torchvision==0.18.0+cu121 \
-    --index-url https://download.pytorch.org/whl/cu121 \
-    --quiet
+# Use explicit pip path to guarantee we install into the conda env, not --user
+$PIP install torch==2.3.0+cu121 torchvision==0.18.0+cu121 \
+    --index-url https://download.pytorch.org/whl/cu121
 
 echo "=== Step 6f: Install Isaac Sim 4.5.0.0 ==="
-pip install isaacsim==4.5.0.0 \
-    --extra-index-url https://pypi.nvidia.com \
-    --quiet
+$PIP install isaacsim==4.5.0.0 \
+    --extra-index-url https://pypi.nvidia.com
 
 echo "=== Step 6g: Install Isaac Lab source packages ==="
 ISAAC_LAB_DIR="/scratch/${USER}/IsaacLab"
-pip install -e "${ISAAC_LAB_DIR}/source/isaaclab" --quiet
-pip install -e "${ISAAC_LAB_DIR}/source/isaaclab_assets" --quiet
-pip install -e "${ISAAC_LAB_DIR}/source/isaaclab_tasks" --quiet
-pip install -e "${ISAAC_LAB_DIR}/source/isaaclab_mirage" --quiet
+$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab"
+$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_assets"
+$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_tasks"
+$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_mirage"
 
 echo "=== Step 6h: Install project dependencies ==="
-pip install skrl==2.0.0 seaborn wandb imageio tensorboard --quiet
+$PIP install skrl==2.0.0 seaborn wandb imageio tensorboard
 
 echo "=== Step 6i: Verify installation ==="
-python -c "import torch; print('torch:', torch.__version__, '| CUDA:', torch.cuda.is_available())"
-python -c "import skrl; print('skrl:', skrl.__version__)"
+$PY -c "import torch; print('torch:', torch.__version__, '| CUDA:', torch.cuda.is_available())"
+$PY -c "import skrl; print('skrl:', skrl.__version__)"
 
 echo "=== Installation complete! ==="
 SINGULARITY_EOF

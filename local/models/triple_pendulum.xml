@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Triple Inverted Pendulum on a Cart – MuJoCo MJCF
+==================================================
+Physics matches the Isaac Lab URDF exactly:
+  Cart:   mass = 1.0 kg,  0.30 x 0.20 x 0.10 m
+  Poles:  mass = 0.1 kg,  length = 0.30 m, radius = 0.01 m
+  Damping at each pole joint: 0.005 N·m·s/rad
+  Gravity: 9.81 m/s²
+
+DOF order in qpos/qvel:
+  0: slider  (prismatic, cart on X axis)
+  1: hinge1  (pole 1 rotation about Y)
+  2: hinge2  (pole 2 rotation about Y)
+  3: hinge3  (pole 3 rotation about Y)
+
+Upright equilibrium: all angles = 0 → poles pointing in +Z
+-->
+<mujoco model="triple_pendulum">
+
+  <compiler angle="radian" coordinate="local" autolimits="true"/>
+  <option timestep="0.01" gravity="0 0 -9.81" integrator="RK4"/>
+
+  <!-- ===================== Visuals ===================== -->
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0.1 0.1 0.1"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="130" elevation="-20"/>
+  </visual>
+
+  <!-- ===================== Assets ===================== -->
+  <asset>
+    <texture name="skybox" type="skybox" builtin="gradient"
+             rgb1="0.4 0.6 0.8" rgb2="0.05 0.05 0.15"
+             width="512" height="3072"/>
+    <texture name="grid" type="2d" builtin="checker" mark="edge"
+             rgb1="0.20 0.30 0.40" rgb2="0.12 0.18 0.25"
+             markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="grid" texuniform="true" reflectance="0.15"/>
+    <material name="track"  rgba="0.55 0.55 0.55 0.7"/>
+    <material name="cart"   rgba="0.85 0.35 0.10 1"/>
+    <material name="pole1"  rgba="0.20 0.65 0.95 1"/>
+    <material name="pole2"  rgba="0.25 0.90 0.55 1"/>
+    <material name="pole3"  rgba="0.95 0.82 0.18 1"/>
+    <material name="tip"    rgba="1.00 1.00 1.00 1"/>
+  </asset>
+
+  <!-- ===================== World ===================== -->
+  <worldbody>
+
+    <!-- Lighting -->
+    <light name="main"   pos="0 -1 4" dir="0 0.3 -1" diffuse="0.8 0.8 0.8" specular="0.2 0.2 0.2"/>
+    <light name="fill"   pos="0  3 2" dir="0 -0.5 -1" diffuse="0.3 0.3 0.3"/>
+
+    <!-- Floor -->
+    <geom name="floor" type="plane" size="0 0 0.05" material="groundplane" contype="0" conaffinity="0"/>
+
+    <!-- Rail / track (visual only, no collisions) -->
+    <geom name="track" type="box" pos="0 0 0.025" size="2.6 0.025 0.012"
+          material="track" contype="0" conaffinity="0"/>
+
+    <!-- ---- Cart ---- -->
+    <!-- Cart center at z=0.05 (sits on top of rail) -->
+    <body name="cart" pos="0 0 0.05">
+      <joint name="slider" type="slide" axis="1 0 0"
+             range="-2.6 2.6" damping="0.0" frictionloss="0.0"/>
+      <geom name="cart_geom" type="box" size="0.15 0.10 0.05"
+            mass="1.0" material="cart" contype="0" conaffinity="0"/>
+
+      <!-- ---- Pole 1 ---- (hinge at top of cart: +0.05 in Z from cart centre) -->
+      <body name="pole1" pos="0 0 0.05">
+        <joint name="hinge1" type="hinge" axis="0 1 0" damping="0.005" range="-6.2832 6.2832"/>
+        <geom name="pole1_geom" type="capsule" fromto="0 0 0 0 0 0.30"
+              size="0.012" mass="0.1" material="pole1" contype="0" conaffinity="0"/>
+
+        <!-- ---- Pole 2 ---- (hinge at top of pole 1) -->
+        <body name="pole2" pos="0 0 0.30">
+          <joint name="hinge2" type="hinge" axis="0 1 0" damping="0.005" range="-6.2832 6.2832"/>
+          <geom name="pole2_geom" type="capsule" fromto="0 0 0 0 0 0.30"
+                size="0.012" mass="0.1" material="pole2" contype="0" conaffinity="0"/>
+
+          <!-- ---- Pole 3 ---- (hinge at top of pole 2) -->
+          <body name="pole3" pos="0 0 0.30">
+            <joint name="hinge3" type="hinge" axis="0 1 0" damping="0.005" range="-6.2832 6.2832"/>
+            <geom name="pole3_geom" type="capsule" fromto="0 0 0 0 0 0.30"
+                  size="0.012" mass="0.1" material="pole3" contype="0" conaffinity="0"/>
+            <!-- White tip marker at very top of stack -->
+            <geom name="tip" type="sphere" pos="0 0 0.30" size="0.025"
+                  material="tip" contype="0" conaffinity="0"/>
+          </body>
+
+        </body>
+      </body>
+
+    </body>
+
+  </worldbody>
+
+  <!-- ===================== Actuator ===================== -->
+  <!-- Normalized action [-1, 1] is scaled to ±20 N in the env -->
+  <actuator>
+    <motor name="slide" joint="slider" gear="1" ctrllimited="true" ctrlrange="-20 20"/>
+  </actuator>
+
+  <!-- ===================== Cameras ===================== -->
+  <worldbody>
+    <!-- Side-tracking camera follows the cart (good for videos) -->
+    <camera name="side_track" pos="0 -4.0 1.2" euler="1.4835 0 0" mode="track" target="cart"/>
+    <!-- Fixed wide shot -->
+    <camera name="fixed_wide"  pos="0 -5.5 1.5" euler="1.4835 0 0"/>
+  </worldbody>
+
+</mujoco>

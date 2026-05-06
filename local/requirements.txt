@@ -1,0 +1,22 @@
+# Local MuJoCo training pipeline – no Isaac Sim required
+# Install from repo root: pip install -r local/requirements.txt
+
+# Physics / environment
+mujoco>=3.0
+gymnasium>=0.29
+
+# RL library
+stable-baselines3>=2.3
+# Rich progress bars during training
+tqdm
+
+# Video recording
+imageio>=2.28
+imageio[ffmpeg]
+
+# Plotting
+matplotlib>=3.7
+pandas>=2.0
+
+# TensorBoard monitoring
+tensorboard>=2.14
