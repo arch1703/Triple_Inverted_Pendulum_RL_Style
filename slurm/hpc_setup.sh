@@ -197,11 +197,13 @@ $PIP install torch==2.3.0+cu121 torchvision==0.18.0+cu121 \
     --index-url https://download.pytorch.org/whl/cu121
 
 echo "=== Step 6f: Install Isaac Sim 4.5.0.0 ==="
-# --no-build-isolation: reuse our env's setuptools instead of pip creating
-# a fresh isolated build venv (which can miss pkg_resources on some systems)
+# flatdict uses setup.py and breaks inside pip's isolated build venv.
+# Pre-install it with no isolation so it uses our pinned setuptools.
+# Then set PIP_NO_BUILD_ISOLATION globally so all transitive deps follow suit.
+$PIP install flatdict --no-build-isolation
+export PIP_NO_BUILD_ISOLATION=1
 $PIP install isaacsim==4.5.0.0 \
-    --extra-index-url https://pypi.nvidia.com \
-    --no-build-isolation
+    --extra-index-url https://pypi.nvidia.com
 
 echo "=== Step 6g: Install Isaac Lab source packages ==="
 ISAAC_LAB_DIR="/scratch/${USER}/IsaacLab"
