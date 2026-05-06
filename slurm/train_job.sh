@@ -85,9 +85,14 @@ mkdir -p "${PROJECT_DIR}/results/checkpoints"
 # ---------------------------------------------------------------------------
 module purge
 
+# Writable scratch dir for Isaac Sim config/cache (overlay is :ro)
+OMNI_DATA="/scratch/${NETID}/omni_data_seed_${SEED}"
+mkdir -p "${OMNI_DATA}"
+
 singularity exec --nv \
     --overlay "${OVERLAY}:ro" \
     --bind "${PROJECT_DIR}:${PROJECT_DIR}" \
+    --bind "${OMNI_DATA}:${OMNI_DATA}" \
     "${SIF}" \
     /bin/bash -c "
         source ${ENV_SCRIPT}
@@ -95,6 +100,10 @@ singularity exec --nv \
         # Auto-accept Isaac Sim EULA — required for non-interactive (Slurm) runs
         export ISAACSIM_ACCEPT_EULA=YES
         export OMNI_KIT_ACCEPT_EULA=YES
+        # Redirect Isaac Sim config/cache to writable scratch (overlay is read-only)
+        export OMNI_DATA_PATH=${OMNI_DATA}
+        export OMNI_USER_DATA_PATH=${OMNI_DATA}
+        export OMNI_CACHE_PATH=${OMNI_DATA}/cache
         cd ${PROJECT_DIR}
         python scripts/train.py \
             --num_envs 512 \
