@@ -226,7 +226,11 @@ $PIP install "flatdict==4.0.1" toml "hidapi==0.14.0.post2" \
 $PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab" --no-build-isolation
 $PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_assets" --no-build-isolation
 $PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_tasks" --no-build-isolation
-$PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_mirage" --no-build-isolation
+# isaaclab_mirage was removed in Isaac Lab v2.x — skip it
+# isaaclab_tasks pulls in a CPU torchvision and overwrites our CUDA build.
+# Re-pin the CUDA versions immediately after.
+$PIP install torch==2.3.0+cu121 torchvision==0.18.0+cu121 \
+    --index-url https://download.pytorch.org/whl/cu121
 
 echo "=== Step 6h: Install project dependencies ==="
 $PIP install skrl==2.0.0 seaborn wandb imageio tensorboard
