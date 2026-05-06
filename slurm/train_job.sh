@@ -92,6 +92,9 @@ singularity exec --nv \
     /bin/bash -c "
         source ${ENV_SCRIPT}
         export PYTHONPATH=${PROJECT_DIR}/source:\${PYTHONPATH}
+        # Auto-accept Isaac Sim EULA — required for non-interactive (Slurm) runs
+        export ISAACSIM_ACCEPT_EULA=YES
+        export OMNI_KIT_ACCEPT_EULA=YES
         cd ${PROJECT_DIR}
         python scripts/train.py \
             --num_envs 512 \
