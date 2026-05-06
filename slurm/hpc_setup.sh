@@ -186,8 +186,10 @@ $PY --version
 $PIP --version
 
 echo "=== Step 6d.1: Bootstrap pip + setuptools ==="
-# pkg_resources (part of setuptools) must exist before any build-system deps
-$PIP install --upgrade pip setuptools wheel
+# Pin setuptools to 69.x — last version that reliably ships pkg_resources.
+# Newer setuptools (70+) can break old-style setup.py packages like flatdict
+# which is pulled in as an Isaac Sim transitive dependency.
+$PIP install --upgrade pip "setuptools==69.5.1" wheel
 
 echo "=== Step 6e: Install PyTorch (CUDA 12.1 compatible) ==="
 # Use explicit pip path to guarantee we install into the conda env, not --user
@@ -195,8 +197,11 @@ $PIP install torch==2.3.0+cu121 torchvision==0.18.0+cu121 \
     --index-url https://download.pytorch.org/whl/cu121
 
 echo "=== Step 6f: Install Isaac Sim 4.5.0.0 ==="
+# --no-build-isolation: reuse our env's setuptools instead of pip creating
+# a fresh isolated build venv (which can miss pkg_resources on some systems)
 $PIP install isaacsim==4.5.0.0 \
-    --extra-index-url https://pypi.nvidia.com
+    --extra-index-url https://pypi.nvidia.com \
+    --no-build-isolation
 
 echo "=== Step 6g: Install Isaac Lab source packages ==="
 ISAAC_LAB_DIR="/scratch/${USER}/IsaacLab"
