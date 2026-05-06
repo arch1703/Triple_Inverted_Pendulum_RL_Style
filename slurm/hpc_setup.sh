@@ -209,8 +209,20 @@ $PIP install isaacsim==4.5.0.0 \
 
 echo "=== Step 6g: Install Isaac Lab source packages ==="
 ISAAC_LAB_DIR="/scratch/${USER}/IsaacLab"
-# --no-build-isolation on every install so pip never creates an isolated build
-# venv that lacks pkg_resources (transitive deps like flatdict need it).
+# Pre-install all isaaclab transitive deps that use legacy setup.py and lack
+# pre-built cp310 wheels. Each of these would otherwise be built inside pip's
+# fresh isolated build venv which carries a new setuptools without pkg_resources.
+# Pre-installing them here (with our pinned setuptools==69.5.1 and
+# --no-build-isolation) means pip finds them already satisfied and skips building.
+#   flatdict==4.0.1  — legacy setup.py, imports pkg_resources
+#   toml             — imported directly in isaaclab's setup.py at build time
+#   hidapi==0.14.0.post2 — C extension with setup.py
+#   pyglet==1.5.31   — old enough to use setup.py (no pyproject.toml)
+#   prettytable==3.3.0  — pinned old version, setup.py based
+#   hatchling+hatch-vcs — isaaclab's own build backend (pyproject.toml)
+$PIP install hatchling hatch-vcs --no-build-isolation
+$PIP install "flatdict==4.0.1" toml "hidapi==0.14.0.post2" \
+             "pyglet==1.5.31" "prettytable==3.3.0" --no-build-isolation
 $PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab" --no-build-isolation
 $PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_assets" --no-build-isolation
 $PIP install -e "${ISAAC_LAB_DIR}/source/isaaclab_tasks" --no-build-isolation
