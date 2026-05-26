@@ -1,27 +1,6 @@
-"""
-plot_results.py – Generate publication-quality figures for the paper
-=====================================================================
-Reads TensorBoard event files (for training curves) and JSON eval files
-(for quantitative metrics) and produces:
-
-  Figure 1  Training curve: mean episode return vs. env steps  (3 seeds)
-  Figure 2  Survival time vs. env steps                        (3 seeds)
-  Figure 3  Reward component breakdown bar chart at convergence
-  Figure 4  Robustness: impulse magnitude vs. recovery rate
-
-All figures are saved as PDF + PNG under results/plots/.
-
-Usage:
-    # After training 3 seeds:
-    python scripts/plot_results.py \\
-        --run_dirs results/runs/triple_pendulum_ppo_seed0 \\
-                   results/runs/triple_pendulum_ppo_seed1 \\
-                   results/runs/triple_pendulum_ppo_seed2 \\
-        --eval_dir results/eval
-
-Dependencies (no Isaac Sim required – run locally on laptop):
-    pip install tensorboard matplotlib seaborn numpy scipy
-"""
+# Generate figures for training curves and eval metrics (Isaac Lab pipeline)
+# reads TensorBoard events and results/eval/*.json
+# usage: python scripts/plot_results.py --run_dirs results/runs/seed0 results/runs/seed1 --eval_dir results/eval
 
 from __future__ import annotations
 
@@ -38,42 +17,31 @@ import matplotlib.ticker as mticker
 import numpy as np
 import seaborn as sns
 
-# Publication styling
 sns.set_theme(style="whitegrid", font="DejaVu Serif", font_scale=1.2)
 PALETTE = sns.color_palette("colorblind", n_colors=4)
 plt.rcParams.update({
-    "figure.dpi":         150,
-    "savefig.dpi":        300,
-    "figure.figsize":     (6.0, 4.0),
-    "axes.spines.top":    False,
-    "axes.spines.right":  False,
+    "figure.dpi": 150,
+    "savefig.dpi": 300,
+    "figure.figsize": (6.0, 4.0),
+    "axes.spines.top": False,
+    "axes.spines.right": False,
 })
 
-# ---------------------------------------------------------------------------
-# Argument parsing
-# ---------------------------------------------------------------------------
 parser = argparse.ArgumentParser(description="Generate paper figures")
-parser.add_argument("--run_dirs",   type=str, nargs="+", required=True,
-                    help="One run directory per seed (TensorBoard events inside)")
-parser.add_argument("--eval_dir",   type=str, default="results/eval",
-                    help="Directory containing *_metrics.json files")
-parser.add_argument("--output_dir", type=str, default="results/plots",
-                    help="Where to save figure files")
-parser.add_argument("--smooth",     type=int, default=20,
-                    help="Exponential moving average window for training curves")
+parser.add_argument("--run_dirs", type=str, nargs="+", required=True)
+parser.add_argument("--eval_dir", type=str, default="results/eval")
+parser.add_argument("--output_dir", type=str, default="results/plots")
+parser.add_argument("--smooth", type=int, default=20)
 args = parser.parse_args()
 
 output_dir = Path(args.output_dir)
 output_dir.mkdir(parents=True, exist_ok=True)
 
-# ---------------------------------------------------------------------------
-# TensorBoard reader
-# ---------------------------------------------------------------------------
 try:
     from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
     _TENSORBOARD_AVAILABLE = True
 except ImportError:
-    print("[plot] WARNING: tensorboard not installed – training curves will be skipped")
+    print("tensorboard not installed - training curves will be skipped")
     _TENSORBOARD_AVAILABLE = False
 
 
@@ -111,8 +79,8 @@ def align_to_grid(
 # ---------------------------------------------------------------------------
 # Figure 1 & 2 – Training curves
 # ---------------------------------------------------------------------------
-RETURN_TAG   = "Reward / Total reward (mean)"    # skrl default tag names
-SURVIVAL_TAG = "Episode / Total timesteps (mean)"  # steps = survival proxy
+RETURN_TAG = "Reward / Total reward (mean)"
+SURVIVAL_TAG = "Episode / Total timesteps (mean)"
 
 def plot_training_curve(
     tag: str,
@@ -131,12 +99,12 @@ def plot_training_curve(
         # Find events file recursively
         event_files = list(rdir.rglob("events.out.tfevents.*"))
         if not event_files:
-            print(f"[plot] No TensorBoard events in {rdir}")
+            print(f"no TensorBoard events in {rdir}")
             continue
         try:
             s, v = read_tb_scalar(event_files[0].parent, tag)
         except KeyError:
-            print(f"[plot] Tag '{tag}' not found in {rdir} – skipping")
+            print(f"tag '{tag}' not found in {rdir} - skipping")
             continue
 
         v = ema_smooth(v * scale, alpha=2 / (args.smooth + 1))
@@ -150,7 +118,7 @@ def plot_training_curve(
         ax.fill_between(grid / 1e6, mean - std, mean + std,
                         color=PALETTE[0], alpha=0.20, label="±1 std")
 
-    ax.set_xlabel("Environment steps (×10⁶)")
+    ax.set_xlabel("Environment steps (x1e6)")
     ax.set_ylabel(ylabel)
     ax.xaxis.set_major_formatter(mticker.FormatStrFormatter("%.1f"))
     ax.legend(frameon=False)
@@ -158,15 +126,13 @@ def plot_training_curve(
     for ext in ("pdf", "png"):
         fig.savefig(output_dir / f"{fig_name}.{ext}")
     plt.close(fig)
-    print(f"[plot] Saved {fig_name}")
+    print(f"saved {fig_name}")
 
 
-plot_training_curve(RETURN_TAG,   "Mean episode return",    "fig1_training_curve")
+plot_training_curve(RETURN_TAG, "Mean episode return", "fig1_training_curve")
 plot_training_curve(SURVIVAL_TAG, "Mean survival time (steps)", "fig2_survival_curve")
 
-# ---------------------------------------------------------------------------
-# Figure 3 – Reward component breakdown at convergence (from final eval JSON)
-# ---------------------------------------------------------------------------
+# Figure 3 - reward component breakdown at convergence
 def plot_reward_breakdown() -> None:
     """
     Reads the final metrics JSON from each seed and plots the reward
@@ -187,7 +153,7 @@ def plot_reward_breakdown() -> None:
         seed_final[key] = json.loads(jf.read_text())  # last write wins → latest ckpt
 
     if not seed_final:
-        print("[plot] No eval JSON found – skipping reward breakdown figure")
+        print("no eval JSON found - skipping reward breakdown figure")
         return
 
     labels  = list(seed_final.keys())
@@ -207,19 +173,17 @@ def plot_reward_breakdown() -> None:
     for ext in ("pdf", "png"):
         fig.savefig(output_dir / f"fig3_reward_breakdown.{ext}")
     plt.close(fig)
-    print("[plot] Saved fig3_reward_breakdown")
+    print("saved fig3_reward_breakdown")
 
 
 plot_reward_breakdown()
 
-# ---------------------------------------------------------------------------
-# Figure 4 – Robustness: impulse magnitude vs. recovery rate
-# ---------------------------------------------------------------------------
-def plot_robustness() -> None:
+# Figure 4 - robustness: impulse magnitude vs. recovery rate
+def plot_robustness():
     eval_dir = Path(args.eval_dir)
     all_json = sorted(eval_dir.glob("*_metrics.json"))
     if not all_json:
-        print("[plot] No eval JSON found – skipping robustness figure")
+        print("no eval JSON found - skipping robustness figure")
         return
 
     # Aggregate recovery rates across checkpoints / seeds
@@ -233,7 +197,7 @@ def plot_robustness() -> None:
             })
 
     if not records:
-        print("[plot] No robustness data found – skipping figure 4")
+        print("no robustness data found - skipping figure 4")
         return
 
     impulses   = np.array([r["mean_impulse"]  for r in records])
@@ -246,7 +210,7 @@ def plot_robustness() -> None:
         z = np.polyfit(impulses, recoveries, 1)
         xfit = np.linspace(impulses.min(), impulses.max(), 100)
         ax.plot(xfit, np.polyval(z, xfit), "--", color=PALETTE[1], alpha=0.6)
-    ax.set_xlabel("Applied impulse magnitude (N·s)")
+    ax.set_xlabel("Applied impulse magnitude (N-s)")
     ax.set_ylabel("Recovery rate (%)")
     ax.set_ylim(0, 105)
     ax.set_title("Robustness to random impulse on pole 3")
@@ -254,9 +218,9 @@ def plot_robustness() -> None:
     for ext in ("pdf", "png"):
         fig.savefig(output_dir / f"fig4_robustness.{ext}")
     plt.close(fig)
-    print("[plot] Saved fig4_robustness")
+    print("saved fig4_robustness")
 
 
 plot_robustness()
 
-print(f"\n[plot] All figures written to {output_dir}")
+print(f"all figures written to {output_dir}")

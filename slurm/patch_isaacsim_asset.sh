@@ -1,10 +1,6 @@
 #!/bin/bash
-# =============================================================================
-#  ONE-TIME PATCH: Install missing isaacsim.asset (URDF importer) package
-# =============================================================================
-# Submit with:
-#   sbatch slurm/patch_isaacsim_asset.sh
-# =============================================================================
+# Install the isaacsim.asset (URDF importer) extension package
+# usage: sbatch slurm/patch_isaacsim_asset.sh
 
 #SBATCH --job-name=patch_isaacsim_asset
 #SBATCH --account=rob_gy_73237-2026sp
@@ -29,7 +25,7 @@ export SINGULARITY_TMPDIR
 mkdir -p "${SINGULARITY_TMPDIR}"
 mkdir -p "${PROJECT_DIR}/logs"
 
-echo "=== Installing isaacsim.asset (URDF importer) ==="
+echo "installing isaacsim.asset (URDF importer)"
 
 singularity exec \
     --overlay "${OVERLAY}" \

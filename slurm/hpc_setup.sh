@@ -1,24 +1,12 @@
 #!/bin/bash
-# =============================================================================
-#  NYU HPC Cloud Bursting – ONE-TIME environment setup script
-# =============================================================================
+# ONE-TIME environment setup for NYU HPC (run inside an interactive job)
+# creates a Singularity overlay with Miniforge + all Python packages (~30-60 min)
 #
-# Run this ONCE from inside an interactive job on a compute node (NOT login).
-# It creates the Singularity overlay with Miniforge + all Python packages.
-#
-# Usage:
-#   1. Start an interactive session (from OOD terminal or login node):
-#        srun --partition=g2-standard-12 --account=rob_gy_73237-2026sp \
-#             --cpus-per-task=4 --mem=40GB --time=04:00:00 --pty /bin/bash
-#
-#   2. cd to your project directory:
-#        cd /scratch/${USER}/triple_pendulum
-#
-#   3. Run this script:
-#        bash slurm/hpc_setup.sh
-#
-#   This takes ~30-60 minutes the first time (Isaac Sim is large).
-# =============================================================================
+# usage:
+#   srun --partition=g2-standard-12 --account=rob_gy_73237-2026sp \
+#        --cpus-per-task=4 --mem=40GB --time=04:00:00 --pty /bin/bash
+#   cd /scratch/${USER}/triple_pendulum
+#   bash slurm/hpc_setup.sh
 
 set -e  # exit on any error
 
@@ -27,53 +15,32 @@ PROJECT_DIR="/scratch/${NETID}/triple_pendulum"
 ISAAC_LAB_DIR="/scratch/${NETID}/IsaacLab"
 ENV_DIR="${PROJECT_DIR}/isaac_env"
 OVERLAY="${ENV_DIR}/isaac_sim.ext3"
-
-# Singularity image – check available with: ls /share/apps/images/
-# We need Ubuntu 22.04 + CUDA 12.x
 SIF="/share/apps/images/cuda12.1.1-cudnn8.9.0-devel-ubuntu22.04.2.sif"
 
-echo "=============================================="
-echo "  NYU HPC Isaac Lab Environment Setup"
-echo "  Project : ${PROJECT_DIR}"
-echo "  Overlay : ${OVERLAY}"
-echo "  Image   : ${SIF}"
-echo "=============================================="
+echo "setup: project=${PROJECT_DIR} overlay=${OVERLAY}"
 
-# ---------------------------------------------------------------------------
-# 1.  Verify we are NOT on the login node (memory would be too limited)
-# ---------------------------------------------------------------------------
+# verify we are NOT on the login node
 if [ -z "${SLURM_JOB_ID}" ]; then
-    echo "WARNING: No SLURM_JOB_ID detected."
-    echo "Are you sure you're on a compute node and not a login node?"
-    echo "Login nodes have a 2GB memory limit which will crash Isaac Sim install."
+    echo "WARNING: no SLURM_JOB_ID - are you on a login node? (2GB RAM limit)"
     read -r -p "Continue anyway? [y/N] " confirm
     [[ "$confirm" =~ ^[Yy]$ ]] || exit 1
 fi
 
-# ---------------------------------------------------------------------------
-# 2.  Check the Singularity image exists
-# ---------------------------------------------------------------------------
+# check the Singularity image
 if [ ! -f "${SIF}" ]; then
-    echo "ERROR: Singularity image not found: ${SIF}"
-    echo "Check available CUDA images:"
-    echo "  ls /share/apps/images/ | grep cuda"
+    echo "ERROR: ${SIF} not found - check: ls /share/apps/images/ | grep cuda"
     exit 1
 fi
 
-# ---------------------------------------------------------------------------
-# 3.  Check available overlay sizes and create the overlay
-# ---------------------------------------------------------------------------
+# create overlay
 mkdir -p "${ENV_DIR}"
 
 if [ -f "${OVERLAY}" ]; then
-    echo "Overlay already exists at ${OVERLAY}. Skipping creation."
-    echo "To rebuild from scratch: rm ${OVERLAY} and re-run this script."
+    echo "overlay already exists at ${OVERLAY}"
 else
-    echo ""
-    echo "Available overlay templates:"
-    ls /share/apps/overlay-fs-ext3/ 2>/dev/null || echo "(none found at /share/apps/overlay-fs-ext3/)"
-    echo ""
-    echo "Looking for the largest available overlay (Isaac Sim needs ~20GB)..."
+    echo "available overlay templates:"
+    ls /share/apps/overlay-fs-ext3/ 2>/dev/null || echo "(none found)"
+    echo "looking for 25GB+ overlay (Isaac Sim needs ~20GB)..."
 
     # Try to find a 25GB+ overlay; fall back to largest available
     OVERLAY_SRC=""

@@ -1,9 +1,4 @@
-"""Triple pendulum tasks package.
-
-Importing this module registers the gymnasium environment so that both
-``gymnasium.make("Isaac-TriplePendulum-Direct-v0")`` and direct instantiation
-via ``TriplePendulumEnv(cfg=...)`` work correctly.
-"""
+# registers the gymnasium env and exports env + cfg
 
 import gymnasium as gym
 

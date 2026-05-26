@@ -1,13 +1,7 @@
 #!/bin/bash
-# =============================================================================
-#  ONE-TIME PATCH: Install missing Isaac Sim extension packages into overlay
-# =============================================================================
-# The base `isaacsim==4.5.0.0` package is only a stub; the actual submodules
-# (simulation_app, extscache, etc.) are separate pip packages.
-#
-# Submit with:
-#   sbatch slurm/patch_isaacsim.sh
-# =============================================================================
+# Install missing Isaac Sim extension packages into the overlay
+# (isaacsim==4.5.0.0 is a stub; submodules are separate pip packages)
+# usage: sbatch slurm/patch_isaacsim.sh
 
 #SBATCH --job-name=patch_isaacsim
 #SBATCH --account=rob_gy_73237-2026sp
@@ -32,8 +26,7 @@ export SINGULARITY_TMPDIR
 mkdir -p "${SINGULARITY_TMPDIR}"
 mkdir -p "${PROJECT_DIR}/logs"
 
-echo "=== Patching Isaac Sim extension packages into overlay ==="
-echo "Overlay: ${OVERLAY}"
+echo "patching Isaac Sim extension packages into overlay"
 
 singularity exec \
     --overlay "${OVERLAY}" \

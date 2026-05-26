@@ -1,12 +1,4 @@
-"""
-setup.py – Install the triple_pendulum package into the active conda env.
-
-Run once from the project root:
-    pip install -e .
-
-This makes ``import triple_pendulum`` work from any script without
-manually manipulating sys.path.
-"""
+# install the triple_pendulum package: pip install -e .
 
 from setuptools import find_packages, setup
 

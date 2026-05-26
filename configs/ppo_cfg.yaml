@@ -1,8 +1,4 @@
-# PPO hyperparameter configuration (YAML override for train.py)
-# ---------------------------------------------------------------
-# These values mirror the defaults in skrl_ppo_cfg.py.
-# Edit this file and pass --cfg_file configs/ppo_cfg.yaml to
-# a future config-loading extension of train.py for sweep experiments.
+# PPO hyperparameters - mirrors defaults in skrl_ppo_cfg.py
 
 rollouts: 24
 learning_epochs: 5

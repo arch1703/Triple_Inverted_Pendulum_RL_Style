@@ -1,7 +1,4 @@
-"""Triple pendulum top-level package.
-
-Importing ``triple_pendulum`` triggers task registration via the tasks subpackage.
-"""
+# triple_pendulum: importing this package triggers task registration via the tasks subpackage
 
 from triple_pendulum.tasks import TriplePendulumEnv, TriplePendulumEnvCfg
 

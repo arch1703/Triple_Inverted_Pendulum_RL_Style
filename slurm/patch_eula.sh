@@ -1,13 +1,7 @@
 #!/bin/bash
-# =============================================================================
-#  ONE-TIME PATCH: Bypass Isaac Sim EULA prompt for non-interactive Slurm runs
-# =============================================================================
-# omni/kit_app.py calls input() unconditionally which raises EOFError in batch.
-# This patch replaces check_eula() with a no-op function.
-#
-# Submit with:
-#   sbatch slurm/patch_eula.sh
-# =============================================================================
+# Bypass Isaac Sim EULA prompt for non-interactive Slurm runs
+# (omni/kit_app.py calls input() which raises EOFError in batch mode)
+# usage: sbatch slurm/patch_eula.sh
 
 #SBATCH --job-name=patch_eula
 #SBATCH --account=rob_gy_73237-2026sp
@@ -32,7 +26,7 @@ export SINGULARITY_TMPDIR
 mkdir -p "${SINGULARITY_TMPDIR}"
 mkdir -p "${PROJECT_DIR}/logs"
 
-echo "=== Patching omni/kit_app.py to bypass EULA prompt ==="
+echo "patching omni/kit_app.py to bypass EULA prompt"
 
 singularity exec \
     --overlay "${OVERLAY}" \

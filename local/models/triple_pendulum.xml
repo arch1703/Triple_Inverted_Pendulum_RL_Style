@@ -1,34 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-Triple Inverted Pendulum on a Cart – MuJoCo MJCF
-==================================================
-Physics matches the Isaac Lab URDF exactly:
-  Cart:   mass = 1.0 kg,  0.30 x 0.20 x 0.10 m
-  Poles:  mass = 0.1 kg,  length = 0.30 m, radius = 0.01 m
-  Damping at each pole joint: 0.005 N·m·s/rad
-  Gravity: 9.81 m/s²
-
-DOF order in qpos/qvel:
-  0: slider  (prismatic, cart on X axis)
-  1: hinge1  (pole 1 rotation about Y)
-  2: hinge2  (pole 2 rotation about Y)
-  3: hinge3  (pole 3 rotation about Y)
-
-Upright equilibrium: all angles = 0 → poles pointing in +Z
+  MuJoCo MJCF for triple inverted pendulum on a cart
+  cart: 1.0 kg, 0.30x0.20x0.10 m
+  poles: 0.1 kg each, 0.30 m long, joint damping 0.005 N-m-s/rad
+  DOFs: slider(prismatic), hinge1, hinge2, hinge3 (all about Y)
 -->
 <mujoco model="triple_pendulum">
 
   <compiler angle="radian" autolimits="true"/>
   <option timestep="0.01" gravity="0 0 -9.81" integrator="RK4"/>
 
-  <!-- ===================== Visuals ===================== -->
+  <!-- visuals -->
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0.1 0.1 0.1"/>
     <rgba haze="0.15 0.25 0.35 1"/>
     <global azimuth="130" elevation="-20" offwidth="1280" offheight="720"/>
   </visual>
 
-  <!-- ===================== Assets ===================== -->
+  <!-- assets -->
   <asset>
     <texture name="skybox" type="skybox" builtin="gradient"
              rgb1="0.4 0.6 0.8" rgb2="0.05 0.05 0.15"
@@ -45,7 +34,7 @@ Upright equilibrium: all angles = 0 → poles pointing in +Z
     <material name="tip"    rgba="1.00 1.00 1.00 1"/>
   </asset>
 
-  <!-- ===================== World ===================== -->
+  <!-- worldbody -->
   <worldbody>
 
     <!-- Lighting -->
@@ -59,32 +48,31 @@ Upright equilibrium: all angles = 0 → poles pointing in +Z
     <geom name="track" type="box" pos="0 0 0.025" size="2.6 0.025 0.012"
           material="track" contype="0" conaffinity="0"/>
 
-    <!-- ---- Cart ---- -->
-    <!-- Cart center at z=0.05 (sits on top of rail) -->
+    <!-- cart -->
     <body name="cart" pos="0 0 0.05">
       <joint name="slider" type="slide" axis="1 0 0"
              range="-2.6 2.6" damping="0.0" frictionloss="0.0"/>
       <geom name="cart_geom" type="box" size="0.15 0.10 0.05"
             mass="1.0" material="cart" contype="0" conaffinity="0"/>
 
-      <!-- ---- Pole 1 ---- (hinge at top of cart: +0.05 in Z from cart centre) -->
+      <!-- pole 1 -->
       <body name="pole1" pos="0 0 0.05">
         <joint name="hinge1" type="hinge" axis="0 1 0" damping="0.005" range="-6.2832 6.2832"/>
         <geom name="pole1_geom" type="capsule" fromto="0 0 0 0 0 0.30"
               size="0.012" mass="0.1" material="pole1" contype="0" conaffinity="0"/>
 
-        <!-- ---- Pole 2 ---- (hinge at top of pole 1) -->
+          <!-- pole 2 -->
         <body name="pole2" pos="0 0 0.30">
           <joint name="hinge2" type="hinge" axis="0 1 0" damping="0.005" range="-6.2832 6.2832"/>
           <geom name="pole2_geom" type="capsule" fromto="0 0 0 0 0 0.30"
                 size="0.012" mass="0.1" material="pole2" contype="0" conaffinity="0"/>
 
-          <!-- ---- Pole 3 ---- (hinge at top of pole 2) -->
+            <!-- pole 3 -->
           <body name="pole3" pos="0 0 0.30">
             <joint name="hinge3" type="hinge" axis="0 1 0" damping="0.005" range="-6.2832 6.2832"/>
             <geom name="pole3_geom" type="capsule" fromto="0 0 0 0 0 0.30"
                   size="0.012" mass="0.1" material="pole3" contype="0" conaffinity="0"/>
-            <!-- White tip marker at very top of stack -->
+            <!-- tip marker -->
             <geom name="tip" type="sphere" pos="0 0 0.30" size="0.025"
                   material="tip" contype="0" conaffinity="0"/>
           </body>
@@ -96,18 +84,15 @@ Upright equilibrium: all angles = 0 → poles pointing in +Z
 
   </worldbody>
 
-  <!-- ===================== Actuator ===================== -->
-  <!-- Normalized action [-1, 1] is scaled to ±20 N in the env -->
+  <!-- actuator: action [-1,1] scaled to +-20 N in env -->
   <actuator>
     <motor name="slide" joint="slider" gear="1" ctrllimited="true" ctrlrange="-20 20"/>
   </actuator>
 
-  <!-- ===================== Cameras ===================== -->
+  <!-- cameras -->
   <worldbody>
-    <!-- Side-tracking camera follows the cart (good for videos) -->
     <camera name="side_track" pos="0 -4.0 1.2" euler="1.4835 0 0" mode="track" target="cart"/>
-    <!-- Fixed wide shot -->
-    <camera name="fixed_wide"  pos="0 -5.5 1.5" euler="1.4835 0 0"/>
+    <camera name="fixed_wide" pos="0 -5.5 1.5" euler="1.4835 0 0"/>
   </worldbody>
 
 </mujoco>

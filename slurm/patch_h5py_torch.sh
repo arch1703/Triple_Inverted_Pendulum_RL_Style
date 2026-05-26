@@ -1,13 +1,7 @@
 #!/bin/bash
-# =============================================================================
-#  ONE-TIME PATCH: Install h5py + re-pin torch/torchvision to CUDA 12.1 builds
-# =============================================================================
-# isaacsim-rl upgraded torch to 2.11.0 (CPU). This re-pins to 2.3.0+cu121 and
-# installs the missing h5py package required by isaaclab.utils.datasets.
-#
-# Submit with:
-#   sbatch slurm/patch_h5py_torch.sh
-# =============================================================================
+# Re-pin torch to CUDA 12.1 builds and install h5py
+# (isaacsim-rl upgrades torch to a CPU build; this fixes that)
+# usage: sbatch slurm/patch_h5py_torch.sh
 
 #SBATCH --job-name=patch_h5py_torch
 #SBATCH --account=rob_gy_73237-2026sp
@@ -32,7 +26,7 @@ export SINGULARITY_TMPDIR
 mkdir -p "${SINGULARITY_TMPDIR}"
 mkdir -p "${PROJECT_DIR}/logs"
 
-echo "=== Patching h5py + re-pinning torch/torchvision ==="
+echo "patching h5py + re-pinning torch/torchvision to CUDA 12.1"
 
 singularity exec \
     --overlay "${OVERLAY}" \

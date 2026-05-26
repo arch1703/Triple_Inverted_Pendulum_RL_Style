@@ -1,21 +1,8 @@
 #!/bin/bash
-# =============================================================================
-#  NYU HPC Cloud Bursting – SLURM job script for triple pendulum PPO training
-# =============================================================================
-#
-# Submitting a single seed (default seed 42):
-#   sbatch slurm/train_job.sh
-#
-# Submitting all 3 seeds as a job array:
-#   sbatch --array=0-2 slurm/train_job.sh
-#
-# Monitor logs live:
-#   tail -f logs/train_<JOBID>_<ARRAYID>.log
-#
-# GPU partition options (from course allocation):
-#   c12m85-a100-1  →  1 A100 40GB  (recommended for full 3M-step training)
-#   g2-standard-12 →  1 L4 GPU     (cheaper; good for short tests)
-# =============================================================================
+# SLURM job for triple pendulum PPO training on NYU HPC
+# single seed:  sbatch slurm/train_job.sh
+# 3-seed array: sbatch --array=0-2 slurm/train_job.sh
+# live log:     tail -f logs/train_<JOBID>_<ARRAYID>.log
 
 #SBATCH --job-name=triple_ppo
 #SBATCH --account=rob_gy_73237-2026sp
@@ -32,60 +19,30 @@
 #SBATCH --mail-type=BEGIN,END,FAIL,REQUEUE
 #SBATCH --mail-user=ac9374@nyu.edu
 
-# ---------------------------------------------------------------------------
-# 0.  Paths  (edit NETID once; everything else is relative)
-# ---------------------------------------------------------------------------
-NETID="${USER}"                                   # auto-filled by SLURM
+NETID="${USER}"
 PROJECT_DIR="/scratch/${NETID}/triple_pendulum"
 OVERLAY="${PROJECT_DIR}/isaac_env/isaac_sim.ext3"
-
-# CUDA 12.x Ubuntu 22.04 image – check available with:
-#   ls /share/apps/images/
 SIF="/share/apps/images/cuda12.1.1-cudnn8.9.0-devel-ubuntu22.04.2.sif"
-
-# Conda env activation script written during setup (see README_HPC_SETUP.sh)
 ENV_SCRIPT="/ext3/env.sh"
-
-# Default seed = SLURM array task ID; fallback to 42 for non-array jobs
 SEED=${SLURM_ARRAY_TASK_ID:-42}
 
-echo "=========================================="
-echo "  Job ID    : ${SLURM_JOB_ID}"
-echo "  Array ID  : ${SLURM_ARRAY_TASK_ID:-N/A}"
-echo "  Seed      : ${SEED}"
-echo "  Node      : $(hostname)"
-echo "  Partition : ${SLURM_JOB_PARTITION}"
-echo "  Overlay   : ${OVERLAY}"
-echo "=========================================="
-
-# ---------------------------------------------------------------------------
-# 1.  Sanity checks
-# ---------------------------------------------------------------------------
+echo "job=${SLURM_JOB_ID} array=${SLURM_ARRAY_TASK_ID:-N/A} seed=${SEED} node=$(hostname)"
 if [ ! -f "${OVERLAY}" ]; then
-    echo "ERROR: Singularity overlay not found at ${OVERLAY}"
-    echo "Run the setup script first:  bash ${PROJECT_DIR}/slurm/hpc_setup.sh"
+    echo "ERROR: overlay not found at ${OVERLAY} - run hpc_setup.sh first"
     exit 1
 fi
 
 if [ ! -f "${SIF}" ]; then
     echo "ERROR: Singularity image not found at ${SIF}"
-    echo "Check available images with: ls /share/apps/images/"
     exit 1
 fi
 
-# ---------------------------------------------------------------------------
-# 2.  Directories
-# ---------------------------------------------------------------------------
 mkdir -p "${PROJECT_DIR}/logs"
 mkdir -p "${PROJECT_DIR}/results/runs"
 mkdir -p "${PROJECT_DIR}/results/checkpoints"
 
-# ---------------------------------------------------------------------------
-# 3.  Training  (overlay opened read-only so multiple seeds can run in parallel)
-# ---------------------------------------------------------------------------
 module purge
 
-# Writable scratch dir for Isaac Sim config/cache (overlay is :ro)
 OMNI_DATA="/scratch/${NETID}/omni_data_seed_${SEED}"
 mkdir -p "${OMNI_DATA}"
 
@@ -97,10 +54,8 @@ singularity exec --nv \
     /bin/bash -c "
         source ${ENV_SCRIPT}
         export PYTHONPATH=${PROJECT_DIR}/source:\${PYTHONPATH}
-        # Auto-accept Isaac Sim EULA — required for non-interactive (Slurm) runs
         export ISAACSIM_ACCEPT_EULA=YES
         export OMNI_KIT_ACCEPT_EULA=YES
-        # Redirect Isaac Sim config/cache to writable scratch (overlay is read-only)
         export OMNI_DATA_PATH=${OMNI_DATA}
         export OMNI_USER_DATA_PATH=${OMNI_DATA}
         export OMNI_CACHE_PATH=${OMNI_DATA}/cache
@@ -114,15 +69,13 @@ singularity exec --nv \
     "
 
 TRAIN_EXIT=$?
-echo "Training finished with exit code ${TRAIN_EXIT}"
+echo "training finished with exit code ${TRAIN_EXIT}"
 
-# ---------------------------------------------------------------------------
-# 4.  Auto-evaluate the best checkpoint after training completes
-# ---------------------------------------------------------------------------
+# auto-evaluate the final checkpoint if training succeeded
 FINAL_CKPT=$(ls -t "${PROJECT_DIR}/results/runs/"*"seed_${SEED}"*/checkpoints/*.pt 2>/dev/null | head -1)
 
 if [ -n "${FINAL_CKPT}" ] && [ "${TRAIN_EXIT}" -eq 0 ]; then
-    echo "Running evaluation on: ${FINAL_CKPT}"
+    echo "running eval on: ${FINAL_CKPT}"
     singularity exec --nv \
         --overlay "${OVERLAY}:ro" \
         --bind "${PROJECT_DIR}:${PROJECT_DIR}" \
@@ -137,5 +90,5 @@ if [ -n "${FINAL_CKPT}" ] && [ "${TRAIN_EXIT}" -eq 0 ]; then
                 --num_episodes 20
         "
 else
-    echo "Skipping eval (no checkpoint found or training did not exit cleanly)"
+    echo "skipping eval (no checkpoint or non-zero exit)"
 fi

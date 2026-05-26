@@ -13,19 +13,10 @@
 
 set -e
 
-echo "================================================"
-echo "  Triple Pendulum – HPC Environment Setup Job"
-echo "  Node    : $(hostname)"
-echo "  Job ID  : ${SLURM_JOB_ID}"
-echo "  Started : $(date)"
-echo "================================================"
+echo "setup job: node=$(hostname) job=${SLURM_JOB_ID} started=$(date)"
 
 cd /scratch/${USER}/triple_pendulum
 
 bash slurm/hpc_setup.sh
 
-echo ""
-echo "================================================"
-echo "  Setup job finished: $(date)"
-echo "  Check log: /scratch/${USER}/setup_${SLURM_JOB_ID}.log"
-echo "================================================"
+echo "setup done: $(date) - log: /scratch/${USER}/setup_${SLURM_JOB_ID}.log"

@@ -1,26 +1,7 @@
-"""
-eval.py – Quantitative evaluation of trained checkpoints
-=========================================================
-Runs 100 deterministic evaluation episodes per checkpoint and records:
-  - Mean / std episode return
-  - Mean / std survival time (seconds)
-  - Success rate  (fraction of episodes where ALL poles stayed upright ≥ 5 s)
-  - Robustness test: a random lateral impulse is applied to the tip of pole_3
-    at t=2 s (well after the policy has stabilised).  The impulse magnitude is
-    drawn from Uniform(5, 15) N·s.  Recovery rate = fraction of episodes that
-    remain upright for ≥ 3 s after the impulse.
-
-All results are saved to  results/eval/<checkpoint_stem>_metrics.json
-
-Usage:
-    # Evaluate a single checkpoint
-    python scripts/eval.py --checkpoint results/runs/.../agent_3000000.pt
-
-    # Evaluate all checkpoints in a run directory (batch mode)
-    python scripts/eval.py --run_dir results/runs/<exp>/checkpoints
-
-The AppLauncher MUST be constructed before any Isaac Lab imports.
-"""
+# Quantitative evaluation of trained checkpoints - 100 episodes per checkpoint
+# results saved to results/eval/<checkpoint_stem>_metrics.json
+# usage: python scripts/eval.py --checkpoint results/runs/.../agent_3000000.pt
+#        python scripts/eval.py --run_dir results/runs/<exp>/checkpoints
 
 from __future__ import annotations
 
@@ -46,32 +27,30 @@ if sys.platform == "win32":
 from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser(description="Evaluate trained triple-pendulum policy")
-parser.add_argument("--checkpoint",    type=str, default="",   help="Single .pt file to evaluate")
-parser.add_argument("--run_dir",       type=str, default="",   help="Directory containing .pt files")
-parser.add_argument("--num_episodes",  type=int, default=100,  help="Episodes per checkpoint")
-parser.add_argument("--success_secs",  type=float, default=5.0, help="Minimum upright seconds for success")
-parser.add_argument("--impulse_time",  type=float, default=2.0, help="Seconds into episode to apply impulse")
-parser.add_argument("--impulse_recovery_secs", type=float, default=3.0,
-                    help="Seconds post-impulse required for recovery")
+parser.add_argument("--checkpoint", type=str, default="")
+parser.add_argument("--run_dir", type=str, default="")
+parser.add_argument("--num_episodes", type=int, default=100)
+parser.add_argument("--success_secs", type=float, default=5.0)
+parser.add_argument("--impulse_time", type=float, default=2.0)
+parser.add_argument("--impulse_recovery_secs", type=float, default=3.0)
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
-app_launcher   = AppLauncher(args_cli)
+app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
-# Enable URDF importer extension (Isaac Sim 4.x does not auto-enable it)
+# enable URDF importer (Isaac Sim 4.x doesn't auto-enable it)
 import omni.kit.app as _kit_app
 _ext_mgr = _kit_app.get_app().get_extension_manager()
 if not _ext_mgr.is_extension_enabled("isaacsim.asset.importer.urdf"):
     _ext_mgr.set_extension_enabled_immediate("isaacsim.asset.importer.urdf", True)
 del _ext_mgr, _kit_app
 
-# ---------------------------------------------------------------------------
 import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "source"))
-import triple_pendulum  # noqa: E402
+import triple_pendulum
 
 from triple_pendulum.agents.skrl_ppo_cfg import PolicyNetwork, ValueNetwork
 from triple_pendulum.tasks.triple_pendulum_env import TriplePendulumEnv
@@ -136,18 +115,17 @@ def run_evaluation(
 
 
 def run_robustness_test(
-    policy: PolicyNetwork,
-    env: TriplePendulumEnv,
+    policy,
+    env,
     wrapped_env,
-    cfg: TriplePendulumEnvCfg,
-    n_episodes: int,
-    impulse_step: int,
-    recovery_steps: int,
+    cfg,
+    n_episodes,
+    impulse_step,
+    recovery_steps,
 ) -> dict:
-    """Apply a random lateral impulse to pole_3 at step ``impulse_step``.
+    """Apply a random lateral impulse to pole_3 at step impulse_step.
 
-    The impulse is modelled as a single-step force on the outermost link.
-    Recovery = episode survived for ≥ ``recovery_steps`` steps after impulse.
+    Recovery counts if the episode survives for at least recovery_steps steps after.
     """
     dt             = cfg.sim.dt * cfg.decimation
     impulse_mags   = np.random.uniform(5.0, 15.0, n_episodes)  # N·s
@@ -156,10 +134,10 @@ def run_robustness_test(
     # Find pole_3 body index for applying external wrench
     try:
         pole3_body_ids, _ = env.robot.find_bodies("pole_3")
-        pole3_body_id     = pole3_body_ids[0]
+        pole3_body_id = pole3_body_ids[0]
         can_apply_impulse = True
     except Exception:
-        print("[eval] WARNING: Could not find pole_3 body – robustness test skipped")
+        print("could not find pole_3 body - robustness test skipped")
         can_apply_impulse = False
 
     for ep_idx in range(n_episodes):
@@ -206,9 +184,7 @@ def run_robustness_test(
     }
 
 
-# ---------------------------------------------------------------------------
-# Resolve checkpoint list
-# ---------------------------------------------------------------------------
+# resolve checkpoint list
 ckpt_paths: list[Path] = []
 if args_cli.checkpoint:
     ckpt_paths = [Path(args_cli.checkpoint)]
@@ -220,29 +196,23 @@ else:
 if not ckpt_paths:
     raise FileNotFoundError(f"No checkpoints found in {args_cli.run_dir}")
 
-# ---------------------------------------------------------------------------
-# Environment
-# ---------------------------------------------------------------------------
 env_cfg = TriplePendulumEnvCfg()
 env_cfg.scene.num_envs = 1
 
-raw_env  = TriplePendulumEnv(cfg=env_cfg, render_mode=None)
-env      = wrap_env(raw_env)
-device   = env.device
+raw_env = TriplePendulumEnv(cfg=env_cfg, render_mode=None)
+env = wrap_env(raw_env)
+device = env.device
 
-dt_policy      = env_cfg.sim.dt * env_cfg.decimation
-success_steps  = int(args_cli.success_secs / dt_policy)
-impulse_step   = int(args_cli.impulse_time / dt_policy)
+dt_policy = env_cfg.sim.dt * env_cfg.decimation
+success_steps = int(args_cli.success_secs / dt_policy)
+impulse_step = int(args_cli.impulse_time / dt_policy)
 recovery_steps = int(args_cli.impulse_recovery_secs / dt_policy)
 
 output_dir = Path(__file__).parent.parent / "results" / "eval"
 output_dir.mkdir(parents=True, exist_ok=True)
 
-# ---------------------------------------------------------------------------
-# Evaluation loop over checkpoints
-# ---------------------------------------------------------------------------
 for ckpt_path in ckpt_paths:
-    print(f"\n[eval] Evaluating {ckpt_path.name} …")
+    print(f"evaluating {ckpt_path.name}")
     policy = load_policy(ckpt_path, env.observation_space, env.action_space, device)
 
     base_metrics = run_evaluation(
@@ -258,11 +228,11 @@ for ckpt_path in ckpt_paths:
         json.dump(metrics, f, indent=2)
 
     print(
-        f"  Return  : {base_metrics['mean_return']:.2f} ± {base_metrics['std_return']:.2f}"
-        f"\n  Survival: {base_metrics['mean_survival_s']:.2f} ± {base_metrics['std_survival_s']:.2f} s"
-        f"\n  Success : {base_metrics['success_rate']*100:.1f}%"
-        f"\n  Recovery: {robustness['robustness_recovery_rate']*100:.1f}%"
-        f"\n  → {out_path}"
+        f"  return  : {base_metrics['mean_return']:.2f} +/- {base_metrics['std_return']:.2f}"
+        f"\n  survival: {base_metrics['mean_survival_s']:.2f} +/- {base_metrics['std_survival_s']:.2f} s"
+        f"\n  success : {base_metrics['success_rate']*100:.1f}%"
+        f"\n  recovery: {robustness['robustness_recovery_rate']*100:.1f}%"
+        f"\n  saved   : {out_path}"
     )
 
 import os as _os
