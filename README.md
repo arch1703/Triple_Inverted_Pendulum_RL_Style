@@ -1,7 +1,7 @@
 # Triple Inverted Pendulum – PPO
 
 ROB-GY 6203 Reinforcement Learning II · NYU Tandon · Spring 2026  
-Arnav Bhatt
+Arnav Chopra
 
 PPO agent trained to balance a triple inverted pendulum on a cart using MuJoCo. Two versions are compared: a baseline (v1) and an improved agent (v2) that hits 100% episode success.
 
