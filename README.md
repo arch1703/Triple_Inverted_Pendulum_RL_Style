@@ -33,7 +33,6 @@ source/                     # Isaac Lab environment (HPC, not used for final res
 scripts/                    # Isaac Lab training / eval entry points
 slurm/                      # NYU HPC SLURM job scripts
 configs/ppo_cfg.yaml        # PPO hyperparameter config
-report/report.tex           # project report
 setup.py
 ```
 
@@ -119,12 +118,6 @@ Outputs: `local/figures/v1/`, `v2/`, and comparison figures.
 | Curriculum | none | 1 deg -> 5 deg at 500k |
 | Linear angle penalty | 0 | 0.1 |
 
-## Report
-
-Full report is in `report/report.tex`. Compile with:
-```bash
-cd report && pdflatex report.tex
-```
 
 ## HPC (Isaac Lab)
 
