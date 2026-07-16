@@ -1,108 +1,121 @@
-# Triple Inverted Pendulum – PPO
+# Triple Inverted Pendulum Reinforcement Learning
 
-ROB-GY 6203 Reinforcement Learning II · NYU Tandon · Spring 2026  
-Arnav Chopra
+PPO-based stabilization of a simulated triple inverted pendulum on a cart.
 
-PPO agent trained to balance a triple inverted pendulum on a cart using MuJoCo. Two versions are compared: a baseline (v1) and an improved agent (v2) that hits 100% episode success.
+This repository includes:
+- A local MuJoCo training pipeline (used for all reported results)
+- An Isaac Lab + SKRL pipeline scaffold
+- Plotting, evaluation, and video generation scripts
 
-## Results
+Important note: Isaac Sim integration did not run successfully on the HPC platform attempted, and it has not been tested locally in this project setup. All reported training/evaluation numbers, figures, and videos in this repository come from the MuJoCo pipeline.
 
-| Agent | Mean Reward | Mean Length | Success |
-|---|---|---|---|
-| v1 (baseline) | 58.3 ± 41.2 | 112 ± 89 steps | 14% |
-| v2 (improved) | 316.8 ± 2.1 | 500 ± 0 steps | **100%** |
+## Results Snapshot
 
-Evaluated over 20 deterministic episodes from the best checkpoint.
+| Agent | Mean Reward | Mean Length | Success Rate |
+| --- | --- | --- | --- |
+| v1 (baseline) | 58.3 +/- 41.2 | 112 +/- 89 steps | 14% |
+| v2 (improved) | 316.8 +/- 2.1 | 500 +/- 0 steps | 100% |
 
-## Project Structure
+Evaluation was run over 20 deterministic episodes using the best checkpoint.
 
-```
-local/                      # MuJoCo pipeline (main codebase, all results from here)
-  envs/triple_pendulum_mujoco.py   # Gymnasium environment
-  models/triple_pendulum.xml       # MuJoCo MJCF model
-  train_local.py            # PPO training
-  play_local.py             # visualise / record a policy
-  plot_local.py             # training curve figures
+## Project Layout
+
+```text
+local/                      # Main MuJoCo workflow
+  envs/triple_pendulum_mujoco.py
+  models/triple_pendulum.xml
+  train_local.py            # Train PPO locally
+  play_local.py             # Visualize / record rollouts
+  plot_local.py             # Generate learning curves
   requirements.txt
-  checkpoints/              # saved model checkpoints
-  runs/                     # VecMonitor CSV logs and TensorBoard events
-  eval_logs/                # evaluation results (.npz)
-  figures/                  # generated plots
-  videos/                   # recorded MP4 rollouts
-source/                     # Isaac Lab environment (HPC, not used for final results)
-scripts/                    # Isaac Lab training / eval entry points
-slurm/                      # NYU HPC SLURM job scripts
-configs/ppo_cfg.yaml        # PPO hyperparameter config
+  figures/
+  videos/
+
+source/triple_pendulum/     # Isaac Lab task + agent config
+scripts/                    # Isaac Lab train/play/eval scripts
+configs/ppo_cfg.yaml        # PPO config used by Isaac Lab pipeline
+slurm/                      # HPC (SLURM) helper scripts
 setup.py
 ```
 
-## Environment
+## Environment (MuJoCo)
 
-`TriplePendulumMuJoCoEnv` wraps MuJoCo for a cart-triple-pole system.
+The local environment models a cart with three serial links.
 
 | Parameter | Value |
-|---|---|
+| --- | --- |
 | Cart mass | 1.0 kg |
 | Link mass (each) | 0.1 kg |
 | Link length (each) | 0.5 m |
-| Physics timestep | 0.01 s (100 Hz) |
-| Policy frequency | 50 Hz (decimation 2) |
-| Max cart force | 20 N |
-| Episode horizon | 500 steps (10 s) |
+| Physics timestep | 0.01 s |
+| Control frequency | 50 Hz (decimation 2) |
+| Max force | 20 N |
+| Episode horizon | 500 steps |
 
-**Observation** (8-dim): `[x, x_dot, theta1, theta1_dot, theta2, theta2_dot, theta3, theta3_dot]`  
-**Action** (1-dim): normalised force in `[-1, 1]` scaled to N  
-**Termination**: any `|theta_i| >= theta_max` or `|x| >= 2 m`
+- Observation (8D): [x, x_dot, theta1, theta1_dot, theta2, theta2_dot, theta3, theta3_dot]
+- Action (1D): normalized force in [-1, 1] scaled to Newtons
+- Termination: angle limit exceeded or cart position out of bounds
 
-## v1 to v2 Changes
+## What Changed From v1 to v2
 
-1. Tighter termination threshold (30 deg -> 15 deg) - forces precision
-2. Linear angle penalty added (weight 0.1) - non-zero gradient at small angles
-3. Curriculum: reset range widens from 1 deg to 5 deg at 500k steps
-4. Entropy decay: linearly annealed from 0.005 to 0.0001 over 6M steps
+1. Tighter termination threshold (30 deg -> 15 deg)
+2. Added linear angle penalty (weight 0.1)
+3. Reset-range curriculum (1 deg -> 5 deg at 500k steps)
+4. Entropy coefficient decay (0.005 -> 0.0001 over training)
 
-## Installation
+## Quick Start (Local MuJoCo)
+
+### 1. Install dependencies
 
 ```bash
 pip install -r local/requirements.txt
 pip install -e .
 ```
 
-Python 3.9+, no GPU required.
+Recommended Python version: 3.10+
 
-## Usage
+### 2. Train
 
-**Train:**
 ```bash
-python local/train_local.py                          # v2 agent, seed 42, 6M steps
+python local/train_local.py
+```
+
+Custom run example:
+
+```bash
 python local/train_local.py --seed 0 --timesteps 6000000 --num_envs 16
-tensorboard --logdir local/runs/                     # monitor live
 ```
 
-Checkpoints saved every 100k steps to `local/checkpoints/<run_name>/`.
+Monitor training:
 
-**Play / record:**
 ```bash
-python local/play_local.py \
-    --checkpoint local/checkpoints/triple_pendulum_ppo_v2_seed42/best_model
-
-python local/play_local.py \
-    --checkpoint local/checkpoints/triple_pendulum_ppo_v2_seed42/best_model \
-    --record --episodes 5 --out local/videos/demo.mp4
+tensorboard --logdir local/runs/
 ```
 
-**Plot training curves:**
+### 3. Play or record
+
+```bash
+python local/play_local.py --checkpoint local/checkpoints/triple_pendulum_ppo_v2_seed42/best_model
+```
+
+```bash
+python local/play_local.py --checkpoint local/checkpoints/triple_pendulum_ppo_v2_seed42/best_model --record --episodes 5 --out local/videos/demo.mp4
+```
+
+### 4. Plot learning curves
+
 ```bash
 python local/plot_local.py
+```
+
+```bash
 python local/plot_local.py --mean_window 200 --out local/figures/
 ```
 
-Outputs: `local/figures/v1/`, `v2/`, and comparison figures.
-
-## Hyperparameters
+## Hyperparameters (v1 vs v2)
 
 | Parameter | v1 | v2 |
-|---|---|---|
+| --- | --- | --- |
 | Total timesteps | 3M | 6M |
 | Parallel envs | 8 | 8 |
 | Rollout steps | 24 | 24 |
@@ -115,22 +128,41 @@ Outputs: `local/figures/v1/`, `v2/`, and comparison figures.
 | Entropy coeff | 0.01 (const.) | 0.005 -> 0.0001 |
 | Network | 2x256 ELU | 2x256 ELU |
 | Angle limit | 30 deg | 15 deg |
-| Curriculum | none | 1 deg -> 5 deg at 500k |
+| Curriculum | none | 1 deg -> 5 deg |
 | Linear angle penalty | 0 | 0.1 |
 
+## Isaac Lab / HPC Path (Status)
 
-## HPC (Isaac Lab)
+The Isaac Lab path is included as code scaffolding, but is currently unverified in this repository:
+- It did not run successfully on the HPC platform that was attempted.
+- It has not been tested locally.
+- All project data/results are from MuJoCo (`local/` pipeline).
 
-SLURM scripts for NYU HPC are in `slurm/`. The `source/` directory has the Isaac Lab environment and SKRL config. Due to Windows compatibility issues with Isaac Sim, all reported results use the MuJoCo pipeline above.
+Reference commands (for future validation):
+
+```bash
+python scripts/train.py --num_envs 512 --headless --seed 42
+```
+
+Evaluate and record:
+
+```bash
+python scripts/play.py --checkpoint results/runs/<experiment>/checkpoints/agent_3000000.pt --num_episodes 10
+```
+
+SLURM helpers are available in the slurm/ directory.
 
 ## Dependencies
 
-| Package | Purpose |
-|---|---|
-| `mujoco >= 3.0` | Physics simulation |
-| `gymnasium >= 0.29` | Environment API |
-| `stable-baselines3 >= 2.3` | PPO implementation |
-| `tensorboard >= 2.14` | Training monitoring |
-| `matplotlib >= 3.7` | Plotting |
-| `pandas >= 2.0` | Log parsing |
-| `imageio[ffmpeg]` | Video recording |
+Key packages used by the local pipeline:
+- mujoco
+- gymnasium
+- stable-baselines3
+- tensorboard
+- matplotlib
+- pandas
+- imageio[ffmpeg]
+
+## Author / Course Context
+
+Developed for ROB-GY 6203 (Reinforcement Learning II), NYU Tandon, Spring 2026.
